@@ -3,6 +3,8 @@ import { defineConfig, fontProviders } from 'astro/config';
 
 // https://astro.build/config
 export default defineConfig({
+  site: 'https://myakura.github.io/test--astro-v6-font-ballooning',
+  base: '/test--astro-v6-font-ballooning',
   fonts: [
     {
       provider: fontProviders.google(),
