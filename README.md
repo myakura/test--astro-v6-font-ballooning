@@ -1,43 +1,44 @@
-# Astro Starter Kit: Minimal
+# Astro Font Ballooning — Minimal Repro
+
+Minimal reproduction for a bug where Astro's built-in font optimization with **Noto Sans JP** causes Latin text to render much larger than its final size during the fallback phase, before the web font swap completes.
+
+## Install and run
 
 ```sh
-npm create astro@latest -- --template minimal
+npm install
+npm run dev
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Then open `http://localhost:4321` in Chrome.
 
-## 🚀 Project Structure
+## How to reproduce
 
-Inside of your Astro project, you'll see the following folders and files:
+1. Open the page in Chrome.
+2. Open DevTools → Network tab → set throttling to **Slow 3G** (or use **Hard Reload** via Shift+Reload).
+3. Reload the page.
+4. Observe that the large `"Astro Font"` heading appears noticeably oversized before shrinking to its final size once the web fonts finish loading.
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+> **Tip:** The effect is easiest to see with network throttling enabled, since the fallback stays visible long enough to notice clearly. A hard reload (`Cmd+Shift+R` / `Ctrl+Shift+F5`) also helps by bypassing the font cache.
+
+## What the bug looks like
+
+The English heading temporarily balloons to a much larger size before the final Noto Sans JP font is applied. This is **not** a normal `font-display: swap` size difference — the generated optimized fallback face uses an extreme `size-adjust` value (around `197%`) that makes Latin text appear dramatically oversized before the swap completes.
+
+The generated fallback `@font-face` in the built HTML looks like:
+
+```css
+@font-face {
+  font-family: "Noto Sans JP-... fallback: Arial";
+  src: local("Arial");
+  size-adjust: 197.1733%;
+  ascent-override: 58.8315%;
+  descent-override: 14.6064%;
+  line-gap-override: 0%;
+}
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+A correct Latin-to-Latin `size-adjust` for this font should be closer to `103–105%`, not `~197%`.
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+## Suspected cause
 
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+Astro's font pipeline caches preferred metrics only by family name, not by subset. This means a CJK subset metrics object can be reused when generating the fallback for the Latin subset, producing a wildly incorrect `size-adjust` for Latin text.
