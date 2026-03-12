@@ -2,8 +2,10 @@
   "name": "test--astro-v6-font-ballooning",
   "type": "module",
   "version": "0.0.1",
+  "private": true,
+  "license": "CC0-1.0",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=24"
   },
   "scripts": {
     "dev": "astro dev",
